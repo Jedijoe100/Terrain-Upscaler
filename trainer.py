@@ -16,10 +16,8 @@ import requests
 DATA_PATH = './data/'
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 
-#TODO: Add error handling for API requests and file operations
 #TODO: Add logging instead of print statements
 #TODO: Refactor code to separate data loading, preprocessing, model training, and evaluation into separate functions or classes
-#TODO: Do preprocessing of data (e.g. normalisation, augmentation) before training the model
 #TODO: Do model training and evaluation using a suitable machine learning framework (e.g. TensorFlow, PyTorch) and evaluate the model using appropriate metrics (e.g. RMSE, MAE)
 #TODO: Add functionality to save the trained model and use it for inference on new data
 
@@ -36,8 +34,38 @@ def load_data(region):
     axs[1].set_title('Low Resolution')
     axs[1].contourf(low_res, cmap='terrain')
     plt.show()
-    return (region['id'], region, high_res, low_res)
+    return (region['id'], region, np.array(high_res), np.array(low_res))
     #get metadata
+
+def preprocess_data(data):
+    # Perform any necessary preprocessing on the data (e.g., normalization, augmentation)
+    # resultant data has the point and its 8 surrounding low res pixels as input and the corresponding 9 high res pixels as output
+    high_res_shape = data[2].shape
+    low_res_shape = data[3].shape
+    print('High Res Shape: {}, Low Res Shape: {}'.format(high_res_shape, low_res_shape))
+    low_res_input = np.zeros(((low_res_shape[0]-2)*(low_res_shape[1]-2), 9))
+    low_res_input[:, 0] = data[3][:-2, :-2].flatten() # top left
+    low_res_input[:, 1] = data[3][:-2, 1:-1].flatten() # top middle
+    low_res_input[:, 2] = data[3][:-2, 2:].flatten() # top right
+    low_res_input[:, 3] = data[3][1:-1, :-2].flatten() # middle left
+    low_res_input[:, 4] = data[3][1:-1, 1:-1].flatten() # middle middle
+    low_res_input[:, 5] = data[3][1:-1, 2:].flatten() # middle right
+    low_res_input[:, 6] = data[3][2:, :-2].flatten() # bottom left
+    low_res_input[:, 7] = data[3][2:, 1:-1].flatten() # bottom middle
+    low_res_input[:, 8] = data[3][2:, 2:].flatten() # bottom right
+    high_res_output = np.zeros(((low_res_shape[0]-2)*(low_res_shape[1]-2), 9))
+    high_res_output[:, 0] = data[2][3:-3:3, 3:-3:3].flatten() # top left
+    high_res_output[:, 1] = data[2][3:-3:3, 4:-3:3].flatten() # top middle
+    high_res_output[:, 2] = data[2][3:-3:3, 5:-3:3].flatten() # top right
+    high_res_output[:, 3] = data[2][4:-3:3, 3:-3:3].flatten() # middle left
+    high_res_output[:, 4] = data[2][4:-3:3, 4:-3:3].flatten() # middle middle
+    high_res_output[:, 5] = data[2][4:-3:3, 5:-3:3].flatten() # middle right
+    high_res_output[:, 6] = data[2][5:-3:3, 3:-3:3].flatten() # bottom left
+    high_res_output[:, 7] = data[2][5:-3:3, 4:-3:3].flatten() # bottom middle
+    high_res_output[:, 8] = data[2][5:-3:3, 5:-3:3].flatten() # bottom right
+    print('Low Res Input Shape: {}, High Res Output Shape: {}'.format(low_res_input.shape, high_res_output.shape))
+    return (data[0], data[1], low_res_input, high_res_output)
+
 
 def request_data(region):
     #Initialising coordinates for OpenTopography API - convert from BNG to WGS84
@@ -72,6 +100,8 @@ def request_data(region):
         f.write(high_res.content)
     with open(os.path.join(WORKING_DIR, DATA_PATH, 'low_res_{}.tif'.format(region['id'])), 'wb') as f:
         f.write(low_res.content)
+    if high_res.status_code != 200 or low_res.status_code != 200:
+        raise Exception('Failed to retrieve data for region {}, see tif files for more details'.format(region['id']))
     region['High Res File'] = 'high_res_{}.tif'.format(region['id'])
     region['Low Res File'] = 'low_res_{}.tif'.format(region['id'])
     return region
@@ -97,16 +127,17 @@ if __name__ == "__main__":
             'Ymin': region[4],
             'Ymax': region[5]
         }
-        if region[6] == None or region[7] == None:
+        if region[6] == None or region[7] == None or not os.path.exists(os.path.join(WORKING_DIR, DATA_PATH, region[6])) or not os.path.exists(os.path.join(WORKING_DIR, DATA_PATH, region[7])):
             print('Requesting data for region {}'.format(region_dict['id']))
             request_data(region_dict)
             con.execute('UPDATE regions SET low_res_file = ?, high_res_file = ? WHERE id = ?', (region_dict['Low Res File'], region_dict['High Res File'], region_dict['id']))
             con.commit()
         else:
             print('Data already exists for region {}'.format(region_dict['id']))
-            region_dict['Low Res File'] = region[6]
-            region_dict['High Res File'] = region[7]
-        data.append(load_data(region_dict))
+            region_dict['High Res File'] = region[6]
+            region_dict['Low Res File'] = region[7]
+        preprocess_data(load_data(region_dict))
+        #data.append(load_data(region_dict))
     
     #Preprocess data
     
