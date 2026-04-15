@@ -51,7 +51,7 @@ def display_as_plot(high_res_list, low_res, save_path=None, save_only=False):
     fig.colorbar(axs[-1].collections[0], ax=axs[-1], orientation='vertical', fraction=0.02, pad=0.04)
     #If a save path is provided, save the plot to the specified path
     if save_path:
-        plt.savefig(save_path)
+        plt.savefig(save_path, transparent=True)
     #If save_only is False, display the plot
     if not save_only:
         plt.show()
