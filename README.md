@@ -1,5 +1,6 @@
 # Terrain-Upscaler
 Terrain upscaling using Neural Network (XGBoost). This can upscale raster data $3^n$ times (with n being the amount to upscale) and can be loaded with loader.py.
+![Image of the upscaled results](/example_visualisation.png)
 
 ## Usage
 After install the requirements to train on the test dataset run the following in terminal:
