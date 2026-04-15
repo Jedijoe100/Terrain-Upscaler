@@ -16,10 +16,6 @@ logger = logging.getLogger(__name__)
 MODEL_STORAGE_PATH = './models/'
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 
-#TODO: Refactor code to separate data loading, preprocessing, model training, and evaluation into separate functions or classes
-#TODO: Do model training and evaluation using a suitable machine learning framework (e.g. TensorFlow, PyTorch) and evaluate the model using appropriate metrics (e.g. RMSE, MAE)
-#TODO: Add functionality to save the trained model and use it for inference on new data
-
 if __name__ == "__main__":
     # retrieve the selected data set to train
     data_set_to_use = sys.argv[1] if len(sys.argv) > 1 else 0
@@ -28,7 +24,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging_level)
     con = sqlite3.connect(os.path.join(WORKING_DIR, 'data.db'))
     selected_regions = con.execute('SELECT * FROM regions where type = ?', (data_set_to_use,)).fetchall()
-    model = XGBRegressor(n_estimators=300, max_depth=10, learning_rate=0.3)
+    model = XGBRegressor(n_estimators=300, max_depth=10, learning_rate=0.2)
     if len(selected_regions) == 0:
         logger.error('No regions found for type {}'.format(data_set_to_use))
         sys.exit(1)
