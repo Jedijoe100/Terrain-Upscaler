@@ -1,2 +1,6 @@
 numpy
+xgboost
+matplotlib
+scikit-learn
+perlin_noise
 Pillow
